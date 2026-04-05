@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A.A.A.T.I. - Check-in Inteligente</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --cor-primaria: #00ff88; --fundo: #0a0a0a; --card: #141414; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--fundo); color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background: var(--card); padding: 2rem; border-radius: 20px; border: 1px solid #333; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { color: var(--cor-primaria); font-size: 1.5rem; text-align: center; margin-bottom: 0.5rem; }
+        p.subtitle { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+        label { display: block; margin-bottom: 5px; font-size: 0.8rem; color: #aaa; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 1.2rem; border-radius: 10px; border: 1px solid #333; background: #1f1f1f; color: white; box-sizing: border-box; transition: 0.3s; }
+        input:focus { border-color: var(--cor-primaria); outline: none; box-shadow: 0 0 10px rgba(0, 255, 136, 0.1); }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: var(--cor-primaria); color: black; font-weight: 800; cursor: pointer; transition: 0.3s; letter-spacing: 1px; }
+        button:disabled { background: #333; color: #777; cursor: not-allowed; }
+        .status-gps { text-align: center; font-size: 0.75rem; margin-top: 15px; color: #f39c12; }
+        .success-msg { color: var(--cor-primaria); text-align: center; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="mainCard">
+    <h1>A.A.A.T.I. UMC</h1>
+    <p class="subtitle">Análise e Desenvolvimento de Sistemas</p>
+    
+    <form id="checkinForm">
+        <label>NOME COMPLETO</label>
+        <input type="text" id="nome" placeholder="Ex: Nicolas Matsuda" required>
+
+        <label>RGM (ÚNICO)</label>
+        <input type="text" id="rgm" placeholder="Seu RGM da UMC" required>
+
+        <label>CURSO</label>
+        <select id="curso" required>
+            <option value="" disabled selected>Selecione...</option>
+            <option value="ADS">Análise e Desenvolvimento de Sistemas</option>
+            <option value="CC">Ciência da Computação</option>
+            <option value="SI">Sistemas de Informação</option>
+            <option value="ES">Engenharia de Software</option>
+        </select>
+
+        <label>SEMESTRE</label>
+        <input type="number" id="semestre" min="1" max="8" placeholder="1 a 8" required>
+
+        <div id="gpsStatus" class="status-gps">Aguardando localização GPS...</div>
+        <button type="submit" id="btnSubmit" disabled>VALIDANDO ACESSO...</button>
+    </form>
+    <div id="successMsg" class="success-msg">
+        <h2>✅ Presença Confirmada!</h2>
+        <p>Bom evento, Matsuda e equipe!</p>
+    </div>
+</div>
+
+<script>
+    const SB_URL = 'https://fngzmhosxjwniapefedm.supabase.co';
+    const SB_KEY = 'sb_publishable_iTOYltH5KRMurCbjwIAuQA__lnQlwiM';
+    const _supabase = supabase.createClient(SB_URL, SB_KEY);
+    const ID_PALESTRA = "PALESTRA_UMC_2026_01"; // Mudar para cada evento
+
+    const form = document.getElementById('checkinForm');
+    const btn = document.getElementById('btnSubmit');
+    const gpsStatus = document.getElementById('gpsStatus');
+    let userCoords = { lat: null, lon: null };
+
+    //vê se a pessoa ta na faculdade
+    function initGeo() {
+        if (!navigator.geolocation) {
+            gpsStatus.innerText = "❌ GPS não suportado neste celular.";
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition((pos) => {
+            userCoords.lat = pos.coords.latitude;
+            userCoords.lon = pos.coords.longitude;
+            
+            // Ativa o botão após pegar a localização
+            gpsStatus.innerText = "📍 Localização detectada com sucesso.";
+            gpsStatus.style.color = "#00ff88";
+            btn.disabled = false;
+            btn.innerText = "CONFIRMAR PRESENÇA";
+        }, (err) => {
+            gpsStatus.innerText = "❌ Ative o GPS para confirmar presença.";
+        }, { enableHighAccuracy: true });
+    }
+
+    async function getFingerprint() {
+        const d = [
+            navigator.userAgent,
+            navigator.language,
+            screen.width + 'x' + screen.height,
+            navigator.hardwareConcurrency,
+            new Date().getTimezoneOffset()
+        ].join('|');
+        const encoder = new TextEncoder();
+        const buffer = await crypto.subtle.digest('SHA-256', encoder.encode(d));
+        return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btn.disabled = true;
+        btn.innerText = "PROCESSANDO...";
+
+        try {
+            if (localStorage.getItem('checkin_' + ID_PALESTRA)) {
+                throw new Error("Você já registrou presença neste dispositivo.");
+            }
+
+            // Pegar IP
+            const ipData = await fetch('https://api.ipify.org?format=json').then(r => r.json());
+            const fPrint = await getFingerprint();
+
+            const payload = {
+                nome_aluno: document.getElementById('nome').value,
+                rgm_aluno: document.getElementById('rgm').value,
+                curso: document.getElementById('curso').value,
+                semestre: parseInt(document.getElementById('semestre').value),
+                id_palestra: ID_PALESTRA,
+                ip_origem: ipData.ip,
+                device_fingerprint: fPrint,
+                latitude: userCoords.lat.toString(),
+                longitude: userCoords.lon.toString()
+            };
+
+            const { error } = await _supabase.from('presencas_palestra').insert([payload]);
+
+            if (error) {
+                if (error.code === '23505') throw new Error("Este RGM já foi utilizado nesta palestra!");
+                throw error;
+            }
+
+            localStorage.setItem('checkin_' + ID_PALESTRA, 'true');
+            form.style.display = 'none';
+            document.getElementById('successMsg').style.display = 'block';
+
+        } catch (err) {
+            alert("❌ ERRO: " + err.message);
+            btn.disabled = false;
+            btn.innerText = "TENTAR NOVAMENTE";
+        }
+    });
+
+    initGeo();
+</script>
+</body>
+</html>
