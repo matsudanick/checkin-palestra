@@ -41,12 +41,64 @@ body {
     55% { opacity: 0.2; transform: translateX(2px); }
 }
 
+/* --- FORMULÁRIO ESTILO VIDRO (GLASSMORPHISM) --- */
 .container { 
-    width: 100%; max-width: 420px; background: var(--bg-card); 
-    backdrop-filter: blur(10px); /* Deixa o fundo desfocado */
-    padding: 30px 25px; border-radius: 24px; 
-    border: 1px solid rgba(187, 134, 252, 0.2); 
-    box-shadow: 0 15px 35px rgba(0,0,0,0.9); 
+    width: 100%; 
+    max-width: 420px; 
+    
+    /* 0.3 é a transparência. Quanto menor, mais você vê o fundo */
+    background: rgba(10, 10, 10, 0.3); 
+    
+    /* Esse é o segredo: ele embaça o vídeo só atrás do card */
+    backdrop-filter: blur(12px); 
+    -webkit-backdrop-filter: blur(12px); /* Suporte para iPhone */
+    
+    padding: 30px 25px; 
+    border-radius: 28px; 
+    border: 1px solid rgba(187, 134, 252, 0.25); /* Borda roxa bem fininha */
+    
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); 
+    z-index: 10;
+}
+/* --- FORMULÁRIO ESTILO VIDRO (GLASSMORPHISM) --- */
+.container { 
+    width: 100%; 
+    max-width: 420px; 
+    
+    /* 0.3 é a transparência. Quanto menor, mais você vê o fundo */
+    background: rgba(10, 10, 10, 0.1); 
+    padding: 30px 25px; 
+    border-radius: 28px; 
+    border: 1px solid rgba(187, 134, 252, 0.25); /* Borda roxa bem fininha */
+    
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2); 
+    z-index: 10;
+}
+/* Deixando os campos de texto também transparentes */
+input, select { 
+    width: 100%; 
+    padding: 14px; 
+    margin-bottom: 18px; 
+    border-radius: 12px; 
+    
+    /* Fundo escuro com 40% de transparência */
+    background: rgba(255, 255, 255, 0.05); 
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    
+    color: white; 
+    font-size: 0.95rem; 
+    transition: 0.3s;
+}
+
+input:focus { 
+    background: rgba(187, 134, 252, 0.1); /* Dá um brilho roxo quando clica */
+    border-color: var(--primary-purple); 
+    outline: none; 
+}
+
+/* Destacando o texto para não sumir no fundo */
+h1, label {
+    text-shadow: 0 2px 10px rgba(0,0,0,0.9);
 }
 .header { text-align: center; margin-bottom: 30px; }
 h1 { font-weight: 800; font-size: 1.6rem; margin: 0; background: linear-gradient(to right, #fff, var(--primary-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
