@@ -3,60 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A.A.A.T.I. - Check-in Pro</title>
+    <title>A.A.A.T.I. UMC - Check-in</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
-    <style>
-        :root { --cor-ati: #00ff88; --fundo: #0a0a0a; }
-        body { font-family: 'Inter', sans-serif; background: var(--fundo); color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        
-        .container { width: 90%; max-width: 400px; background: #111; padding: 25px; border-radius: 20px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h1 { color: var(--cor-ati); text-align: center; margin-bottom: 20px; font-size: 1.5rem; }
-        
-        input, select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: white; box-sizing: border-box; }
-        
-        /* Botão de abrir assinatura */
-        .btn-abrir-assinatura { background: #333; color: var(--cor-ati); border: 1px dashed var(--cor-ati); padding: 15px; width: 100%; border-radius: 10px; cursor: pointer; margin-bottom: 20px; font-weight: bold; }
-
-        /* Overlay da Assinatura (TELA INTEIRA BRANCA) */
-        #signature-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; z-index: 999; flex-direction: column; }
-        #signature-pad { width: 100%; flex-grow: 1; cursor: crosshair; }
-        
-        .controles-assinatura { display: flex; padding: 15px; background: #f0f0f0; gap: 10px; }
-        .btn-limpar { background: #ff4444; color: white; border: none; padding: 15px; flex: 1; border-radius: 8px; font-weight: bold; }
-        .btn-salvar { background: #0088ff; color: white; border: none; padding: 15px; flex: 2; border-radius: 8px; font-weight: bold; }
-
-        button#btnEnviar { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--cor-ati); color: black; font-weight: 900; cursor: pointer; margin-top: 10px; }
-        button:disabled { background: #444; color: #888; }
-        
-        .status { text-align: center; font-size: 0.8rem; margin-top: 10px; color: #888; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<div class="holograma-container">
+    <div class="scanlines"></div>
+    <img src="logo1.png" alt="Logo Holográfico AAATI" class="imagem-holografica">
+</div>
+
 <div class="container">
-    <h1>A.A.A.T.I. UMC</h1>
+    <div class="header">
+        <h1>A.A.A.T.I.</h1>
+        <div class="umc-tag">UMC - Tecnologia</div>
+    </div>
+    
     <form id="checkinForm">
-        <input type="text" id="nome" placeholder="Nome Completo" required>
-        <input type="text" id="rgm" placeholder="RGM" required>
+        <label>Nome Completo</label>
+        <input type="text" id="nome" placeholder="Ex: Nicolas Matsuda" required>
+
+        <label>RGM</label>
+        <input type="text" id="rgm" placeholder="Número do RGM" required>
         
+        <label>Curso</label>
         <select id="curso" required>
-            <option value="" disabled selected>Curso...</option>
+            <option value="" disabled selected>Selecione...</option>
             <option value="ADS">Análise e Desenvolvimento de Sistemas</option>
             <option value="CC">Ciência da Computação</option>
             <option value="SI">Sistemas de Informação</option>
             <option value="ES">Engenharia de Software</option>
         </select>
 
-        <input type="number" id="semestre" min="1" max="8" placeholder="Semestre (1-8)" required>
+        <label>Semestre</label>
+        <input type="number" id="semestre" min="1" max="8" placeholder="1 a 8" required>
 
-        <button type="button" class="btn-abrir-assinatura" id="openSignature">
-            ✍️ CLIQUE AQUI PARA ASSINAR
-        </button>
-        <div id="msgAssinado" style="display:none; color:var(--cor-ati); text-align:center; margin-bottom:15px; font-weight:bold;">✓ Assinatura Capturada</div>
+        <button type="button" class="btn-abrir-assinatura" id="openSignature">✍️ CLIQUE PARA ASSINAR</button>
+        <div id="msgAssinado" style="display:none;">✓ Assinatura Capturada</div>
 
-        <button type="submit" id="btnEnviar" disabled>VALIDANDO GPS...</button>
-        <div id="gpsMsg" class="status">Buscando sua localização...</div>
+        <button type="submit" id="btnEnviar" disabled>VERIFICANDO GPS...</button>
+        <div id="gpsMsg" class="status-msg">Buscando localização...</div>
     </form>
 </div>
 
@@ -64,94 +55,10 @@
     <canvas id="signature-pad"></canvas>
     <div class="controles-assinatura">
         <button type="button" class="btn-limpar" id="clear">LIMPAR</button>
-        <button type="button" class="btn-salvar" id="saveSignature">CONCLUIR ASSINATURA</button>
+        <button type="button" class="btn-salvar" id="saveSignature">CONCLUIR</button>
     </div>
 </div>
 
-<script>
-    // --- CONFIG SUPABASE ---
-    const SB_URL = 'https://fngzmhosxjwniapefedm.supabase.co';
-    const SB_KEY = 'sb_publishable_iTOYltH5KRMurCbjwIAuQA__lnQlwiM';
-    const _supabase = supabase.createClient(SB_URL, SB_KEY);
-    const ID_PALESTRA = "PALESTRA_UMC_2026";
-
-    const overlay = document.getElementById('signature-overlay');
-    const canvas = document.getElementById('signature-pad');
-    const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
-
-    function resizeCanvas() {
-        const ratio = Math.max(window.devicePixelRatio || 1, 1);
-        canvas.width = window.innerWidth * ratio;
-        canvas.height = (window.innerHeight - 80) * ratio; // Desconta os botões
-        canvas.getContext("2d").scale(ratio, ratio);
-        signaturePad.clear();
-    }
-
-    // Controle do Overlay
-    document.getElementById('openSignature').addEventListener('click', () => {
-        overlay.style.display = 'flex';
-        resizeCanvas();
-    });
-
-    document.getElementById('saveSignature').addEventListener('click', () => {
-        if (signaturePad.isEmpty()) {
-            alert("Assine antes de concluir!");
-        } else {
-            overlay.style.display = 'none';
-            document.getElementById('openSignature').style.display = 'none';
-            document.getElementById('msgAssinado').style.display = 'block';
-        }
-    });
-
-    document.getElementById('clear').addEventListener('click', () => signaturePad.clear());
-
-    // Localização e Envio
-    let userLoc = { lat: null, lon: null };
-    navigator.geolocation.getCurrentPosition((pos) => {
-        userLoc.lat = pos.coords.latitude;
-        userLoc.lon = pos.coords.longitude;
-        document.getElementById('gpsMsg').innerText = "📍 Localização Validada";
-        document.getElementById('btnEnviar').disabled = false;
-        document.getElementById('btnEnviar').innerText = "CONFIRMAR PRESENÇA";
-    }, (err) => {
-        document.getElementById('gpsMsg').innerText = "⚠️ Ative o GPS para assinar";
-    });
-
-    document.getElementById('checkinForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('btnEnviar');
-        btn.disabled = true;
-        btn.innerText = "REGISTRANDO...";
-
-        try {
-            const fPrint = [navigator.userAgent, screen.width].join('|');
-            const ipData = await fetch('https://api.ipify.org?format=json').then(r => r.json());
-
-            const { error } = await _supabase.from('presencas_palestra').insert([{
-                nome_aluno: document.getElementById('nome').value,
-                rgm_aluno: document.getElementById('rgm').value,
-                curso: document.getElementById('curso').value,
-                semestre: parseInt(document.getElementById('semestre').value),
-                id_palestra: ID_PALESTRA,
-                latitude: userLoc.lat.toString(),
-                longitude: userLoc.lon.toString(),
-                ip_origem: ipData.ip,
-                device_fingerprint: fPrint,
-                assinatura: signaturePad.toDataURL() // O Base64 da assinatura
-            }]);
-
-            if (error) {
-                if (error.code === '23505') throw new Error("RGM já cadastrado!");
-                throw error;
-            }
-
-            alert("✅ Presença e assinatura confirmadas!");
-            location.reload();
-        } catch (err) {
-            alert("Erro: " + err.message);
-            btn.disabled = false;
-        }
-    });
-</script>
+<script src="script.js"></script>
 </body>
 </html>
